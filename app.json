@@ -1,0 +1,17 @@
+{
+  "name": "rest-api",
+  "displayName": "rest-api",
+  "expo": {
+    "name": "rest-api",
+    "slug": "rest-api",
+    "version": "1.0.0",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
