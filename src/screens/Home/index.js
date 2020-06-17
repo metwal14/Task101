@@ -1,57 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, View, Text, ActivityIndicator, StyleSheet, FlatList, Image } from 'react-native';
+import { SafeAreaView, View, ActivityIndicator, StyleSheet, FlatList, Alert } from 'react-native';
 import { BASE_URL, ALBUMS, PHOTOS } from '../../utils/urls';
 import SingleItem from './Components/SingleItem';
 
-const Home = (props) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [photoData, setPhotoData] = useState(null);
-    const [isLoadMore, setIsLoadMore] = useState(true);
-    const [isRefresh, setIsRefresh] = useState(false);
-    const [page, setPage] = useState(1);
-
+const Home = () => {
+    const [isLoading, setIsLoading] = useState(true); //for showing loader 
+    const [photoData, setPhotoData] = useState(null); // for storing API response
+    const [isLoadMore] = useState(true); // for load more data 
+    const [isRefresh, setIsRefresh] = useState(false); // for pull to refresh 
+    const [page, setPage] = useState(1); // iniial page 1
+    
+    
+    // for fetching the data 
     const fetchData = async (page) => {
-        fetch(`${BASE_URL}/${ALBUMS}/${page}/${PHOTOS}`).
+        let isfetching = true; // to check whether API is fetching or not
+        const abortController = new AbortController(); // to abort the fetch API
+        //to abort after particular seconds
+        setTimeout(() => {
+        abortController.abort();
+        setIsLoading(false);
+        if(isfetching){
+            Alert.alert('Connection Time out!!!');
+        }
+          }, 7000); // to check the connection time out you can decrease the seconds(100)
+        
+          // Fetch to hit the API
+        fetch(`${BASE_URL}/${ALBUMS}/${page}/${PHOTOS}`,{
+            'signal': abortController.signal,
+        }).
             then((response) => response.json())
             .then((responseJson) => {
-                setIsLoading(false);
-                page===1 ?
+                isfetching = false;
+                console.log('fetching');
+                setIsLoading(false); // to not show the loader
+                page===1 ? // to check if its in page 1 or 1+
                     setPhotoData(responseJson)
                     :
-                    setPhotoData(photoData.concat(responseJson));
-                setIsRefresh(false);
+                    setPhotoData(photoData.concat(responseJson)); // to concat the previous page data with the current page response
+                setIsRefresh(false); // to make the refresh false
             })
             .catch((error) => {
-                console.log(error);
+                Alert.alert(error.message);
             })
+
+           
     }
-    useEffect(() => {
+    useEffect(() => { // to work as componentDidMount
         if (page === 1) {
             fetchData(page);
         }
     }, []);
 
-    useEffect(() => {
+    useEffect(() => { // if the page will change it will hit  and page is greater than 1+
         if (page > 1) {
-            setTimeout(()=>fetchData(page),1000);
+            setTimeout(()=>fetchData(page),500); // i had used setTimeout to show the loader, as its working very fast and not able to see the loader
         }
     }, [page]);
 
-    useEffect(() => {
+    useEffect(() => { // if the isRefresh will change it will hit 
         if (isRefresh) {
             let page=1;
-            setTimeout(()=>fetchData(page),1000);
+            setTimeout(()=>fetchData(page),500);// i had used setTimeout to show the loader, as its working very fast and not able to see the loader
         }
     }, [isRefresh]);
 
-    const renderFooter = () => (
+    const renderFooter = () => ( // to show the footer of the flatlist
         isLoadMore && page > 1 && (
             <View style={styles.loader}>
                 <ActivityIndicator size='large' />
             </View>
         )
     )
-    const onRefresh = () =>{
+    const onRefresh = () =>{ // on pulling to refersh
         setIsRefresh(true);
     }
     return (
@@ -68,18 +88,18 @@ const Home = (props) => {
             }
             <View style={styles.itemFlatList}>
                 <FlatList
-                    numColumns={3}
-                    onRefresh={onRefresh}
-                    refreshing={isRefresh}
-                    showsVerticalScrollIndicator={false}
-                    data={photoData}
-                    keyExtractor={item => item.id}
-                    renderItem={({ item }) => SingleItem(item)}
-                    onEndReachedThreshold={0.8}
-                    ListFooterComponent={renderFooter}
-                    onEndReached={() => {
+                    numColumns={3} // to restrict the column to 3 
+                    onRefresh={onRefresh} // to refresh
+                    refreshing={isRefresh} // whether to call onRefresh or not
+                    showsVerticalScrollIndicator={false} // to hide the verticalbarScroller
+                    data={photoData} 
+                    keyExtractor={item => item.id} // to make each item unique
+                    renderItem={({ item }) => SingleItem(item)} // to render
+                    onEndReachedThreshold={0.8} // it will call the onEndReached when it will range 80% of the screen to load more
+                    ListFooterComponent={renderFooter} // to show loader in footer of the flatlist
+                    onEndReached={() => { // on reaching end it will call 
                         if (isLoadMore) {
-                            setPage(page + 1);
+                            setPage(page + 1); //to increase the page
                         }
                     }}
                 />
